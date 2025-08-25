@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Camera, Check, Upload, Image as ImageIcon } from 'lucide-react'
 import { Room, InspectionItem, Photo, ConditionSeverity } from '@/types'
-import { DatabaseService } from '@/lib/database'
+import { DatabaseService, db } from '@/lib/database'
 import { ImageUtils } from '@/lib/imageUtils'
 
 interface RoomInspectionProps {
@@ -28,7 +28,7 @@ export default function RoomInspection({ roomId }: RoomInspectionProps) {
 
   const loadRoomData = async () => {
     try {
-      const roomData = await DatabaseService.db.rooms.get(roomId)
+      const roomData = await db.rooms.get(roomId)
       
       if (!roomData) {
         router.push('/')

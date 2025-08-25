@@ -135,7 +135,7 @@ export default function InspectionDetails({ inspectionId }: InspectionDetailsPro
       
       // Create share link
       const reports = await DatabaseService.getReportsByInspection(inspectionId)
-      const report = reports?.[0]
+      const report = reports && reports.length > 0 ? reports[0] : null
       if (!report) throw new Error('Report not found')
       
       const shareUrl = await ShareService.createShareLink(inspectionId, report.id)

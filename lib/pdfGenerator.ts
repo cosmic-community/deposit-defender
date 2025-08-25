@@ -200,8 +200,12 @@ export class PDFGenerator {
         headStyles: { fillColor: [37, 99, 235], textColor: 255 },
         columnStyles: {
           1: { 
-            cellWidth: 25,
-            didParseCell: function(data: any) {
+            cellWidth: 25
+          }
+        },
+        hooks: {
+          didParseCell: function(data: any) {
+            if (data.column.index === 1 && data.section === 'body') {
               const condition = data.cell.text[0]?.toLowerCase();
               switch(condition) {
                 case 'good': 
@@ -257,6 +261,8 @@ export class PDFGenerator {
       // Add photos in current row
       for (let j = 0; j < photosPerRow && i + j < photos.length; j++) {
         const photo = photos[i + j];
+        if (!photo) continue;
+        
         const xPosition = this.PAGE_MARGIN + j * (photoWidth + 10);
         
         try {

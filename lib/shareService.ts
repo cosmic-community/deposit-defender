@@ -1,5 +1,5 @@
 import { ShareLink, PDFReport } from '@/types';
-import { DatabaseService } from './database';
+import { DatabaseService, db } from './database';
 
 export class ShareService {
   private static readonly SHARE_EXPIRY_DAYS = 7;
@@ -27,7 +27,7 @@ export class ShareService {
     await DatabaseService.createShareLink(shareLink);
     
     // Update report with share token
-    await DatabaseService.db.reports.update(reportId, {
+    await db.reports.update(reportId, {
       shareToken: token,
       shareExpiresAt: expiresAt.toISOString()
     });
@@ -79,7 +79,7 @@ export class ShareService {
       }
 
       const reports = await DatabaseService.getReportsByInspection(shareLink.inspectionId);
-      const report = reports.find(r => r.shareToken === token);
+      const report = reports && reports.length > 0 ? reports.find(r => r.shareToken === token) : null;
       
       return report || null;
     } catch (error) {
@@ -149,12 +149,12 @@ export class ShareService {
   // Revoke share link
   static async revokeShareLink(token: string): Promise<boolean> {
     try {
-      await DatabaseService.db.shareLinks.delete(token);
+      await db.shareLinks.delete(token);
       
       // Remove share token from report
-      const reports = await DatabaseService.db.reports.where('shareToken').equals(token).toArray();
+      const reports = await db.reports.where('shareToken').equals(token).toArray();
       for (const report of reports) {
-        await DatabaseService.db.reports.update(report.id, {
+        await db.reports.update(report.id, {
           shareToken: undefined,
           shareExpiresAt: undefined
         });
