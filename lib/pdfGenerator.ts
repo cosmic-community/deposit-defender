@@ -1,14 +1,8 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { Inspection, Room, InspectionItem, Photo } from '@/types';
 import { DatabaseService } from './database';
 import { ImageUtils } from './imageUtils';
-
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF;
-  }
-}
 
 export class PDFGenerator {
   private static readonly PAGE_MARGIN = 20;
@@ -99,7 +93,7 @@ export class PDFGenerator {
       summaryData.push(['General Notes', inspection.notes]);
     }
 
-    pdf.autoTable({
+    autoTable(pdf, {
       startY: yPosition,
       head: [['Category', 'Details']],
       body: summaryData,
@@ -139,7 +133,7 @@ export class PDFGenerator {
       })
     );
 
-    pdf.autoTable({
+    autoTable(pdf, {
       startY: yPosition,
       head: [['Room Name', 'Type', 'Items', 'Photos', 'Conditions']],
       body: roomSummaryData,
@@ -195,7 +189,7 @@ export class PDFGenerator {
         item.checkedAt ? new Date(item.checkedAt).toLocaleString() : 'Not checked'
       ]);
 
-      pdf.autoTable({
+      autoTable(pdf, {
         startY: yPosition,
         head: [['Item', 'Condition', 'Notes', 'Checked At']],
         body: itemsData,
@@ -205,17 +199,27 @@ export class PDFGenerator {
         columnStyles: {
           1: { 
             cellWidth: 25,
-            fillColor: (data: any) => {
+            didParseCell: function(data: any) {
               const condition = data.cell.text[0]?.toLowerCase();
               switch(condition) {
-                case 'good': return [22, 163, 74];
-                case 'fair': return [217, 119, 6];
-                case 'poor': return [220, 38, 38];
-                case 'damaged': return [124, 45, 18];
-                default: return [255, 255, 255];
+                case 'good': 
+                  data.cell.styles.fillColor = [22, 163, 74];
+                  data.cell.styles.textColor = 255;
+                  break;
+                case 'fair': 
+                  data.cell.styles.fillColor = [217, 119, 6];
+                  data.cell.styles.textColor = 255;
+                  break;
+                case 'poor': 
+                  data.cell.styles.fillColor = [220, 38, 38];
+                  data.cell.styles.textColor = 255;
+                  break;
+                case 'damaged': 
+                  data.cell.styles.fillColor = [124, 45, 18];
+                  data.cell.styles.textColor = 255;
+                  break;
               }
-            },
-            textColor: 255
+            }
           }
         }
       });

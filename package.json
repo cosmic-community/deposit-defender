@@ -31,7 +31,6 @@
     "tailwindcss": "^3.4.0",
     "autoprefixer": "^10.4.0",
     "postcss": "^8.4.0",
-    "@types/jspdf": "^2.3.0",
     "glob": "^10.3.10"
   }
 }
