@@ -5,7 +5,6 @@ export interface Inspection {
   inspectionDate: string;
   createdAt: string;
   updatedAt: string;
-  rooms: Room[];
   status: InspectionStatus;
   notes?: string;
 }
@@ -15,8 +14,6 @@ export interface Room {
   inspectionId: string;
   name: string;
   type: RoomType;
-  items: InspectionItem[];
-  photos: Photo[];
   notes?: string;
   completedAt?: string;
 }
@@ -27,7 +24,6 @@ export interface InspectionItem {
   name: string;
   condition: ConditionSeverity;
   notes?: string;
-  photos: Photo[];
   checkedAt?: string;
 }
 
@@ -118,7 +114,17 @@ export interface RoomTemplate {
   defaultItems: string[];
 }
 
-// Utility types
-export type CreateInspectionData = Omit<Inspection, 'id' | 'createdAt' | 'updatedAt' | 'rooms'>;
-export type CreateRoomData = Omit<Room, 'id' | 'items' | 'photos'>;
-export type CreateItemData = Omit<InspectionItem, 'id' | 'photos'>;
+// Utility types for database operations
+export type CreateInspectionData = Omit<Inspection, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreateRoomData = Omit<Room, 'id'>;
+export type CreateItemData = Omit<InspectionItem, 'id'>;
+
+// Extended types for component use with populated relations
+export interface InspectionWithRooms extends Inspection {
+  rooms: Room[];
+}
+
+export interface RoomWithDetails extends Room {
+  items: InspectionItem[];
+  photos: Photo[];
+}

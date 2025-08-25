@@ -11,7 +11,6 @@ export default function InspectionDashboard() {
   const [inspections, setInspections] = useState<Inspection[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [selectedInspection, setSelectedInspection] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -21,9 +20,10 @@ export default function InspectionDashboard() {
   const loadInspections = async () => {
     try {
       const data = await DatabaseService.getAllInspections()
-      setInspections(data)
+      setInspections(data || [])
     } catch (error) {
       console.error('Error loading inspections:', error)
+      setInspections([])
     } finally {
       setLoading(false)
     }
@@ -34,7 +34,6 @@ export default function InspectionDashboard() {
       const inspectionId = await DatabaseService.createInspection({
         propertyAddress: data.propertyAddress,
         inspectionDate: data.inspectionDate,
-        rooms: [],
         status: 'draft',
         notes: data.notes
       })
@@ -69,6 +68,16 @@ export default function InspectionDashboard() {
         return 'bg-primary-100 text-primary-800'
       default:
         return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const getRoomCount = async (inspectionId: string): Promise<number> => {
+    try {
+      const rooms = await DatabaseService.getRoomsByInspection(inspectionId)
+      return rooms?.length || 0
+    } catch (error) {
+      console.error('Error getting room count:', error)
+      return 0
     }
   }
 
@@ -112,7 +121,7 @@ export default function InspectionDashboard() {
         </div>
 
         {/* Inspections Grid */}
-        {inspections.length === 0 ? (
+        {!inspections || inspections.length === 0 ? (
           <div className="text-center py-12">
             <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No inspections yet</h3>
@@ -129,75 +138,13 @@ export default function InspectionDashboard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {inspections.map((inspection) => (
-              <div key={inspection.id} className="card hover:shadow-md transition-shadow duration-200">
-                <div className="flex items-start justify-between mb-4">
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(inspection.status)}`}
-                  >
-                    {inspection.status.replace('-', ' ').toUpperCase()}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => router.push(`/inspection/${inspection.id}`)}
-                      className="p-2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                      title="View details"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteInspection(inspection.id)}
-                      className="p-2 text-gray-400 hover:text-red-600 transition-colors duration-200"
-                      title="Delete inspection"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-                    {inspection.propertyAddress}
-                  </h3>
-                  
-                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                    <Calendar className="w-4 h-4" />
-                    {new Date(inspection.inspectionDate).toLocaleDateString()}
-                  </div>
-                  
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <MapPin className="w-4 h-4" />
-                    {inspection.rooms.length} room{inspection.rooms.length !== 1 ? 's' : ''}
-                  </div>
-                </div>
-
-                {inspection.notes && (
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                    {inspection.notes}
-                  </p>
-                )}
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => router.push(`/inspection/${inspection.id}`)}
-                    className="btn-primary flex-1 text-sm py-2"
-                  >
-                    Continue Inspection
-                  </button>
-                  
-                  {inspection.status === 'completed' && (
-                    <button
-                      className="p-2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                      title="Share report"
-                    >
-                      <Share2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="mt-3 text-xs text-gray-500">
-                  Updated {new Date(inspection.updatedAt).toLocaleDateString()}
-                </div>
-              </div>
+              <InspectionCard
+                key={inspection.id}
+                inspection={inspection}
+                onView={() => router.push(`/inspection/${inspection.id}`)}
+                onDelete={() => handleDeleteInspection(inspection.id)}
+                getStatusColor={getStatusColor}
+              />
             ))}
           </div>
         )}
@@ -213,6 +160,106 @@ export default function InspectionDashboard() {
 
       {/* Mobile spacing for safe area */}
       <div className="h-20 safe-bottom"></div>
+    </div>
+  )
+}
+
+// Separate component for inspection card to improve maintainability
+function InspectionCard({ 
+  inspection, 
+  onView, 
+  onDelete, 
+  getStatusColor 
+}: {
+  inspection: Inspection;
+  onView: () => void;
+  onDelete: () => void;
+  getStatusColor: (status: string) => string;
+}) {
+  const [roomCount, setRoomCount] = useState<number>(0)
+
+  useEffect(() => {
+    const loadRoomCount = async () => {
+      try {
+        const rooms = await DatabaseService.getRoomsByInspection(inspection.id)
+        setRoomCount(rooms?.length || 0)
+      } catch (error) {
+        console.error('Error loading room count:', error)
+        setRoomCount(0)
+      }
+    }
+    loadRoomCount()
+  }, [inspection.id])
+
+  return (
+    <div className="card hover:shadow-md transition-shadow duration-200">
+      <div className="flex items-start justify-between mb-4">
+        <span
+          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(inspection.status)}`}
+        >
+          {inspection.status.replace('-', ' ').toUpperCase()}
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onView}
+            className="p-2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+            title="View details"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+          <button
+            onClick={onDelete}
+            className="p-2 text-gray-400 hover:text-red-600 transition-colors duration-200"
+            title="Delete inspection"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
+          {inspection.propertyAddress}
+        </h3>
+        
+        <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+          <Calendar className="w-4 h-4" />
+          {new Date(inspection.inspectionDate).toLocaleDateString()}
+        </div>
+        
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <MapPin className="w-4 h-4" />
+          {roomCount} room{roomCount !== 1 ? 's' : ''}
+        </div>
+      </div>
+
+      {inspection.notes && (
+        <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+          {inspection.notes}
+        </p>
+      )}
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onView}
+          className="btn-primary flex-1 text-sm py-2"
+        >
+          Continue Inspection
+        </button>
+        
+        {inspection.status === 'completed' && (
+          <button
+            className="p-2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+            title="Share report"
+          >
+            <Share2 className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      <div className="mt-3 text-xs text-gray-500">
+        Updated {new Date(inspection.updatedAt).toLocaleDateString()}
+      </div>
     </div>
   )
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Camera, Check, X, Upload, AlertCircle, Image as ImageIcon } from 'lucide-react'
+import { ArrowLeft, Camera, Check, Upload, Image as ImageIcon } from 'lucide-react'
 import { Room, InspectionItem, Photo, ConditionSeverity } from '@/types'
 import { DatabaseService } from '@/lib/database'
 import { ImageUtils } from '@/lib/imageUtils'
@@ -28,20 +28,21 @@ export default function RoomInspection({ roomId }: RoomInspectionProps) {
 
   const loadRoomData = async () => {
     try {
-      const [roomData, itemsData, photosData] = await Promise.all([
-        DatabaseService.db.rooms.get(roomId),
-        DatabaseService.getItemsByRoom(roomId),
-        DatabaseService.getPhotosByRoom(roomId)
-      ])
+      const roomData = await DatabaseService.db.rooms.get(roomId)
       
       if (!roomData) {
         router.push('/')
         return
       }
       
+      const [itemsData, photosData] = await Promise.all([
+        DatabaseService.getItemsByRoom(roomId),
+        DatabaseService.getPhotosByRoom(roomId)
+      ])
+      
       setRoom(roomData)
-      setItems(itemsData)
-      setPhotos(photosData)
+      setItems(itemsData || [])
+      setPhotos(photosData || [])
     } catch (error) {
       console.error('Error loading room data:', error)
       router.push('/')
@@ -68,6 +69,8 @@ export default function RoomInspection({ roomId }: RoomInspectionProps) {
   }
 
   const handlePhotoCapture = async (file: File, severity: ConditionSeverity) => {
+    if (!room) return
+    
     setUploadingPhoto(true)
     try {
       // Compress and watermark image
@@ -77,7 +80,7 @@ export default function RoomInspection({ roomId }: RoomInspectionProps) {
       await DatabaseService.savePhoto({
         itemId: selectedItem || undefined,
         roomId,
-        inspectionId: room!.inspectionId,
+        inspectionId: room.inspectionId,
         filename: file.name,
         originalSize: compressed.originalSize,
         compressedSize: compressed.compressedSize,
@@ -88,7 +91,7 @@ export default function RoomInspection({ roomId }: RoomInspectionProps) {
       
       // Reload photos
       const updatedPhotos = await DatabaseService.getPhotosByRoom(roomId)
-      setPhotos(updatedPhotos)
+      setPhotos(updatedPhotos || [])
       
     } catch (error) {
       console.error('Error saving photo:', error)
@@ -99,7 +102,7 @@ export default function RoomInspection({ roomId }: RoomInspectionProps) {
   }
 
   const handleCameraCapture = async (severity: ConditionSeverity) => {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    if (!navigator.mediaDevices?.getUserMedia) {
       alert('Camera not available on this device.')
       return
     }
@@ -120,8 +123,8 @@ export default function RoomInspection({ roomId }: RoomInspectionProps) {
       video.play()
       
       // Wait for video to be ready
-      await new Promise((resolve) => {
-        video.addEventListener('loadedmetadata', resolve)
+      await new Promise<void>((resolve) => {
+        video.addEventListener('loadedmetadata', () => resolve())
       })
       
       // Create capture canvas
@@ -154,15 +157,15 @@ export default function RoomInspection({ roomId }: RoomInspectionProps) {
   }
 
   const handleFileUpload = (severity: ConditionSeverity) => {
-    if (fileInputRef.current) {
-      fileInputRef.current.onchange = (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0]
-        if (file) {
-          handlePhotoCapture(file, severity)
-        }
+    if (!fileInputRef.current) return
+    
+    fileInputRef.current.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (file) {
+        handlePhotoCapture(file, severity)
       }
-      fileInputRef.current.click()
     }
+    fileInputRef.current.click()
   }
 
   const getConditionColor = (condition: ConditionSeverity) => {
@@ -175,7 +178,7 @@ export default function RoomInspection({ roomId }: RoomInspectionProps) {
   }
 
   const getProgress = () => {
-    if (items.length === 0) return 0
+    if (!items || items.length === 0) return 0
     const checkedItems = items.filter(item => item.checkedAt).length
     return Math.round((checkedItems / items.length) * 100)
   }

@@ -23,13 +23,15 @@ export class PDFGenerator {
     await this.addHeader(pdf, inspection);
     
     // Add summary
-    await this.addSummary(pdf, inspection, rooms);
+    await this.addSummary(pdf, inspection, rooms || []);
     
     // Add room details
-    for (const room of rooms) {
-      const items = await DatabaseService.getItemsByRoom(room.id);
-      const roomPhotos = allPhotos.filter(p => p.roomId === room.id);
-      await this.addRoomDetails(pdf, room, items, roomPhotos);
+    if (rooms) {
+      for (const room of rooms) {
+        const items = await DatabaseService.getItemsByRoom(room.id);
+        const roomPhotos = allPhotos?.filter(p => p.roomId === room.id) || [];
+        await this.addRoomDetails(pdf, room, items || [], roomPhotos);
+      }
     }
     
     // Add footer
@@ -116,7 +118,7 @@ export class PDFGenerator {
         const items = await DatabaseService.getItemsByRoom(room.id);
         const photos = await DatabaseService.getPhotosByRoom(room.id);
         
-        const conditionCounts = items.reduce((acc, item) => {
+        const conditionCounts = (items || []).reduce((acc, item) => {
           acc[item.condition] = (acc[item.condition] || 0) + 1;
           return acc;
         }, {} as Record<string, number>);
@@ -124,8 +126,8 @@ export class PDFGenerator {
         return [
           room.name,
           room.type.replace('-', ' ').toUpperCase(),
-          items.length.toString(),
-          photos.length.toString(),
+          (items?.length || 0).toString(),
+          (photos?.length || 0).toString(),
           Object.entries(conditionCounts)
             .map(([condition, count]) => `${condition.toUpperCase()}: ${count}`)
             .join(', ') || 'N/A'
