@@ -203,28 +203,26 @@ export class PDFGenerator {
             cellWidth: 25
           }
         },
-        hooks: {
-          didParseCell: function(data: any) {
-            if (data.column.index === 1 && data.section === 'body') {
-              const condition = data.cell.text[0]?.toLowerCase();
-              switch(condition) {
-                case 'good': 
-                  data.cell.styles.fillColor = [22, 163, 74];
-                  data.cell.styles.textColor = 255;
-                  break;
-                case 'fair': 
-                  data.cell.styles.fillColor = [217, 119, 6];
-                  data.cell.styles.textColor = 255;
-                  break;
-                case 'poor': 
-                  data.cell.styles.fillColor = [220, 38, 38];
-                  data.cell.styles.textColor = 255;
-                  break;
-                case 'damaged': 
-                  data.cell.styles.fillColor = [124, 45, 18];
-                  data.cell.styles.textColor = 255;
-                  break;
-              }
+        didParseCell: function(data: any) {
+          if (data.column.index === 1 && data.section === 'body') {
+            const condition = data.cell.text[0]?.toLowerCase();
+            switch(condition) {
+              case 'good': 
+                data.cell.styles.fillColor = [22, 163, 74];
+                data.cell.styles.textColor = 255;
+                break;
+              case 'fair': 
+                data.cell.styles.fillColor = [217, 119, 6];
+                data.cell.styles.textColor = 255;
+                break;
+              case 'poor': 
+                data.cell.styles.fillColor = [220, 38, 38];
+                data.cell.styles.textColor = 255;
+                break;
+              case 'damaged': 
+                data.cell.styles.fillColor = [124, 45, 18];
+                data.cell.styles.textColor = 255;
+                break;
             }
           }
         }
