@@ -226,7 +226,7 @@ export default function InspectionDetails({ inspectionId }: InspectionDetailsPro
             <div className="flex items-center gap-2">
               <button
                 onClick={handleGeneratePDF}
-                disabled={generatingPDF || !rooms || rooms.length === 0}
+                disabled={generatingPDF || rooms.length === 0}
                 className="btn-primary flex items-center gap-2"
               >
                 {generatingPDF ? (
@@ -276,7 +276,7 @@ export default function InspectionDetails({ inspectionId }: InspectionDetailsPro
           </button>
         </div>
 
-        {!rooms || rooms.length === 0 ? (
+        {rooms.length === 0 ? (
           <div className="text-center py-12 card">
             <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No rooms added yet</h3>
@@ -323,7 +323,7 @@ function InspectionInfo({ inspection, rooms }: { inspection: Inspection; rooms: 
 
   useEffect(() => {
     const calculateProgress = async () => {
-      if (!rooms || rooms.length === 0) {
+      if (rooms.length === 0) {
         setOverallProgress(0)
         return
       }
@@ -362,7 +362,7 @@ function InspectionInfo({ inspection, rooms }: { inspection: Inspection; rooms: 
             </div>
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4" />
-              {rooms?.length || 0} room{(rooms?.length || 0) !== 1 ? 's' : ''}
+              {rooms.length} room{rooms.length !== 1 ? 's' : ''}
             </div>
           </div>
         </div>
